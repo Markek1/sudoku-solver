@@ -1,3 +1,5 @@
+use std::time::{self, SystemTime};
+
 use macroquad::prelude::*;
 
 mod config;
@@ -16,6 +18,13 @@ fn window_config() -> Conf {
 
 #[macroquad::main(window_config)]
 async fn main() {
+    rand::srand(
+        SystemTime::now()
+            .duration_since(time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs(),
+    );
+
     let mut solver = Solver::new(Grid::random(10));
 
     let mut paused = true;
@@ -30,15 +39,16 @@ async fn main() {
             next_step = true;
         }
 
+        if is_key_pressed(KeyCode::N) {
+            solver = Solver::new(Grid::random(10));
+        }
+
         if !paused || next_step {
             next_step = false;
 
-            if solver.solve_step() == ExitCode::Success {
+            if solver.solve_n_steps(1000) == ExitCode::Success {
                 paused = true;
             }
-
-            // println!("{:?}", solver.solve());
-            // paused = true;
         }
 
         clear_background(WHITE);

@@ -34,8 +34,8 @@ impl Grid {
 
             let mut value = rand::gen_range(1, 10);
 
-            while !grid.row_can_add(index % 9, index / 9, value)
-                || !grid.column_can_add(index % 9, index / 9, value)
+            while !grid.row_can_add(index / 9, value)
+                || !grid.column_can_add(index % 9, value)
                 || !grid.square_can_add(index % 9, index / 9, value)
             {
                 value = rand::gen_range(1, 10);
@@ -52,7 +52,7 @@ impl Grid {
         x + y * 9
     }
 
-    fn row_can_add(&self, x: usize, y: usize, value: i32) -> bool {
+    fn row_can_add(&self, y: usize, value: i32) -> bool {
         for i in 0..9 {
             let index = Grid::two_d_to_index(i, y);
             if self.cells[index] == Some(value) {
@@ -62,7 +62,7 @@ impl Grid {
         true
     }
 
-    fn column_can_add(&self, x: usize, y: usize, value: i32) -> bool {
+    fn column_can_add(&self, x: usize, value: i32) -> bool {
         for i in 0..9 {
             let index = Grid::two_d_to_index(x, i);
             if self.cells[index] == Some(value) {
@@ -107,8 +107,8 @@ impl Solver {
         let index = Grid::two_d_to_index(x, y);
 
         if g.cells[index].is_some()
-            || !g.row_can_add(x, y, value)
-            || !g.column_can_add(x, y, value)
+            || !g.row_can_add(y, value)
+            || !g.column_can_add(x, value)
             || !g.square_can_add(x, y, value)
         {
             return ExitCode::Failure;
@@ -117,20 +117,6 @@ impl Solver {
         g.cells[index] = Some(value);
 
         ExitCode::Success
-    }
-
-    pub fn solve(&mut self) -> ExitCode {
-        loop {
-            match self.solve_step() {
-                ExitCode::Success => return ExitCode::Success,
-                ExitCode::Failure => {
-                    if self.current == (0, 0) {
-                        return ExitCode::Failure;
-                    }
-                }
-                ExitCode::InProgress => (),
-            }
-        }
     }
 
     fn increment_indices(&mut self) {
@@ -151,7 +137,7 @@ impl Solver {
         let (x, y) = self.current;
         let index = Grid::two_d_to_index(x, y);
 
-        println!("{:?}, start_num: {}", self.current, self.start_nums[index]);
+        println!("{:?}", self.current);
 
         if self.current == (8, 8) && self.grid.cells[index].is_some() {
             return ExitCode::Success;
@@ -164,7 +150,6 @@ impl Solver {
 
         for num in self.start_nums[index]..=9 {
             if self.try_add(x, y, num) == ExitCode::Success {
-                println!("Added {} to {:?}", num, self.current);
                 self.start_nums[index] = num + 1;
 
                 if self.current == (8, 8) {
@@ -191,6 +176,36 @@ impl Solver {
         self.grid.cells[index] = None;
 
         ExitCode::Failure
+    }
+
+    pub fn solve(&mut self) -> ExitCode {
+        loop {
+            match self.solve_step() {
+                ExitCode::Success => return ExitCode::Success,
+                ExitCode::Failure => {
+                    if self.current == (0, 0) {
+                        return ExitCode::Failure;
+                    }
+                }
+                ExitCode::InProgress => (),
+            }
+        }
+    }
+
+    pub fn solve_n_steps(&mut self, n: usize) -> ExitCode {
+        for _ in 0..n {
+            match self.solve_step() {
+                ExitCode::Success => return ExitCode::Success,
+                ExitCode::Failure => {
+                    if self.current == (0, 0) {
+                        return ExitCode::Failure;
+                    }
+                }
+                ExitCode::InProgress => (),
+            }
+        }
+
+        ExitCode::InProgress
     }
 
     pub fn draw(&self, window_dims: (usize, usize)) {
@@ -224,6 +239,22 @@ impl Solver {
                     cell_width as f32,
                     cell_height as f32,
                     1.0,
+                    BLACK,
+                );
+            }
+        }
+
+        for i in 0..3 {
+            for j in 0..3 {
+                let x = i * 3;
+                let y = j * 3;
+
+                draw_rectangle_lines(
+                    x as f32 * cell_width as f32,
+                    y as f32 * cell_height as f32,
+                    cell_width as f32 * 3.,
+                    cell_height as f32 * 3.,
+                    4.0,
                     BLACK,
                 );
             }
